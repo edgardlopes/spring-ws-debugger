@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Teste</title>
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="beautify-json.css">
+    </head>
+    <body>
+        <style>
+            .stats{
+                position: fixed;
+                top: 10px;
+                right: 10px;
+            }
+        </style>
+        <div class="main">
+        
+        </div>
+
+        <div class="alert alert-primary stats" role="alert">
+            <p>Recebidos: <span class="received">0<span></span></p>
+            <p>Respondidos: <span class="answered">0<span></span></p>
+        </div>
+        
+        
+        <script src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
+        <script src="sockjs.js"></script>
+        <script src="stomp.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.js"></script>
+        <script src="jquery.beautify-json.js"></script>
+
+        <script>
+            var $answered = $('.answered')
+            var $received = $('.received')
+            var $target = $('html,body')
+
+
+
+            var socket = new SockJS('http://192.168.9.130:8080/ws');
+            stompClient = Stomp.over(socket);
+            //stompClient.debug = null;
+            stompClient.connect({pms: 'MICROS'}, (frame) => {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/topic/public', onNewMessage);
+                //stompClient.subscribe('/events', onNewMessage)
+            }, function(message){
+                console.log(message)
+            })
+            
+
+
+            function onNewMessage(result) {
+                //console.log(result)
+                var message = JSON.parse(result.body);                
+                increateReceived()
+                stompClient.send('/events/response', {}, JSON.stringify({timestamp: message.timestamp, response: 'ACK'}))
+                append(result.body)
+                increateAnswered()
+            }            
+
+            function append(message){
+                var timestamp = new Date().getTime()
+                $('.main').append(`<div class="content-${timestamp}">${message}</div>`)
+                $(`.content-${timestamp}`).beautifyJSON({
+                    type: "flexible",
+                    color: true
+                });
+
+                $target.animate({scrollTop: $target.height()}, 1000);
+            }
+
+            function increateReceived(){
+                $received.text(Number($received.text()) + 1)
+            }
+            
+            function increateAnswered(){
+                $answered.text(Number($answered.text()) + 1)
+            }
+        </script>
+    </body>
+</html>
